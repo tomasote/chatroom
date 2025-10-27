@@ -16,7 +16,7 @@ pub enum ServerMessage{
     ErrorUnknownRecipient(String),
     IncomingWhisper{author: String, message: String},
     IncomingMessage{author: String, message: String},
-    SuccessfullyWhispered{recipient: String},
+    SuccessfullyWhispered{recipient: String, message:String},
     SuccessfullyJoined{active: Vec<String>},
     UserLeft(String),
     UserJoined(String),
@@ -103,10 +103,11 @@ pub fn prettify_print(msg: ServerMessage, user: &String) {
                 );
             }    
         },
-        ServerMessage::SuccessfullyWhispered{recipient} => println!("{}: {} {}",
+        ServerMessage::SuccessfullyWhispered{recipient, message} => println!("{}: {} {}: {}",
             server.green(),
             "Successfully whispered to".cyan(),
-            recipient.trim_ascii().bold().cyan()
+            recipient.trim_ascii().bold().cyan(),
+            message
             ),
         ServerMessage::SuccessfullyJoined{active} => {
             let online_user = active.len();

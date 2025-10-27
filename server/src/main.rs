@@ -63,16 +63,18 @@ fn handle_client(mut stream: TcpStream, clients: Arc<Mutex<HashMap<String, Tx>>>
                         send_to_all_users(message, &clients);
                         let response: ServerMessage = ServerMessage::Leave;
                         stream.write_all(serialize_server_message(response).as_bytes()).unwrap();
+                        break;
                     },
                     ChatMessage::Text{author, message} => {
                         let message: ServerMessage = ServerMessage::IncomingMessage{author, message};
                         send_to_all_users(message, &clients);
                     }
                     ChatMessage::Whisper{author, message, recipient} => {
+                        let content = message.clone();
                         let message = ServerMessage::IncomingWhisper{author, message};
                         let success = send_to_one_user(message, &clients, recipient.clone());
                         if success{
-                            let response: ServerMessage = ServerMessage::SuccessfullyWhispered{recipient};
+                            let response: ServerMessage = ServerMessage::SuccessfullyWhispered{recipient, message: content};
                             stream.write_all(serialize_server_message(response).as_bytes()).unwrap();
                         }
                         else {
@@ -92,7 +94,7 @@ fn handle_client(mut stream: TcpStream, clients: Arc<Mutex<HashMap<String, Tx>>>
 }
 
 fn main() {
-    let listener = TcpListener::bind(format!("0.0.0.0:{}", SERVER_PORT)).unwrap();
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", SERVER_PORT)).unwrap();
     println!("Server listening on 127.0.0.1:{}", SERVER_PORT);
     let clients = Arc::new(Mutex::new(HashMap::<String, Tx>::new()));
     for stream in listener.incoming() {
