@@ -5,7 +5,7 @@ This is a beginner project I did to learn about RUST. It is a simple chatroom ru
 
 **Preq:** Cargo
 
-1. Clone the repositories
+1. Clone the repository
 2. Open a terminal and run ```cargo run -p server```
 3. Open 1 or more terminals and in them run ```cargo run -p client```
 4. Play around!
