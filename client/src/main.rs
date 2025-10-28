@@ -4,6 +4,8 @@ use std::sync::{Arc, Mutex};
 use std::net::TcpStream;
 use std::thread;
 use eframe::egui;
+use std::sync::atomic::Ordering;
+use std::sync::atomic::AtomicBool;
 
 fn main() -> eframe::Result{
 
@@ -20,6 +22,8 @@ fn main() -> eframe::Result{
     let mut username_ok = true;
     let error = Arc::new(Mutex::new(String::from("")));
     let is_joined = Arc::new(Mutex::new(false));
+
+    let repaint_flag = Arc::new(AtomicBool::new(false));
 
 
     let mut chat_message = String::from("");
@@ -39,7 +43,12 @@ fn main() -> eframe::Result{
     });
    
     eframe::run_simple_native("Chatroom", options, move |ctx, frame| {
-        ctx.request_repaint();
+        ctx.request_repaint_after(std::time::Duration::from_millis(100));
+        if repaint_flag.load(Ordering::Relaxed){
+            println!("Request noticed");
+                ctx.request_repaint();
+                repaint_flag.store(false, Ordering::Relaxed);
+            }
         let mut name_lock = name.lock().unwrap();
         let logged_in_lock = is_joined.lock().unwrap();
         let mut error_lock = error.lock().unwrap();
@@ -60,7 +69,7 @@ fn main() -> eframe::Result{
                             *stream_lock = Some(new_stream);
                             let name_val = name_lock.clone();
                             username_ok = handle_login(&mut stream_lock, &name_val);
-                            spawn_listener(read_stream, name.clone(), messages.clone(), active_users.clone(), is_joined.clone(), error.clone());
+                            spawn_listener(read_stream, name.clone(), messages.clone(), active_users.clone(), is_joined.clone(), error.clone(), Arc::clone(&repaint_flag));
                         },
                         Err(e) => {
                             *error_lock = e.to_string();
@@ -159,6 +168,7 @@ fn main() -> eframe::Result{
             });
         }
         
+        
     })
 
 }
@@ -198,6 +208,7 @@ fn spawn_listener(
     active_users: Arc<Mutex<Vec<String>>>,
     is_joined: Arc<Mutex<bool>>,
     error: Arc<Mutex<String>>,
+    repaint_flag: Arc<AtomicBool>
 ) {
     thread::spawn(move || {
         let mut read_stream = read_stream;
@@ -285,6 +296,7 @@ fn spawn_listener(
 
                         }
                     }
+                    repaint_flag.store(true, Ordering::Relaxed);
                 }
                 Err(_) => break,
             }
